@@ -244,30 +244,58 @@ class Obj(object):
 		self.vfaces = []
 		self.read()
 		self.zbuffer = []
+		self.framebuffer = []
 		self.clear()
+		self.sx = 0
+		self.sy = 0
+		self.viewwidth = 0
+		self.viewheight = 0
+		
+	def ViewPort(self, x, y, largo, alto):
+		self.sx = x+(largo/2)
+		self.sy = y+(alto/2)
+		self.viewwidth = largo/2
+		self.viewheight = alto/2
+		
 	def clear (self):
-		self.zbuffer = [
+		self.framebuffer = [
 			[
 				color(0,0,0)
 					for x in range(an)
 			]
 			for y in range(al)
 		]
-
 		
-	def transform(self, vertex, translate = (0,0,0), scale = (1,1,1)):
+		self.zbuffer = [
+			[
+				float('inf')*-1
+					for x in range(an)
+			]
+			for y in range(al)
+		]
 
+	def FltoPixelsX(self, x0):
+		X = (((x0+1)/2)*self.viewwidth)+self.sx
+		return X    
+	def FltoPixelsY(self, y0):
+		Y = (((y0+1)/2)*self.viewheight)+self.sy
+		return Y
+		
+	def transform(self, vertex, translate=(0,0,0), scale=(1,1,1)):
 		return V3(
-			round((vertex[0] + translate[0]) * scale[0]),
-			round((vertex[1] + translate[1]) * scale[1]),
-			round((vertex[2] + translate[2]) * scale[2])
-			)
+			round(self.FltoPixelsX((vertex[0] + translate[0]) * scale[0])),
+			round(self.FltoPixelsY((vertex[1] + translate[1]) * scale[1])),
+			round(self.FltoPixelsY((vertex[2] + translate[2]) * scale[2]))
+		)
 	
 	def point(self, x, y, color):
-		self.zbuffer[x][y] = color
+		self.framebuffer[x][y] = color
 			
 	def triangle(self, A, B, C, color):
 		bbox_min, bbox_max = bbox(A, B, C)
+		
+		bby = (bbox_max.y+1)-bbox_min.y
+		bby = (bbox_max.y+1)-bbox_min.y
 		
 		for x in range(bbox_min.x, bbox_max.x + 1):
 			for y in range(bbox_min.y, bbox_max.y + 1):
@@ -278,11 +306,12 @@ class Obj(object):
 				
 				z = A.z * w + B.z * v + C.z * u
 				
-				print(self.zbuffer[x][y])
-				
+					
 				if z > self.zbuffer[x][y]:
 					self.point(x,y, color)
-					self.zbuffer[x][y] = z		
+					self.zbuffer[x][y] = z
+
+						
 			
 
 	def read(self):
@@ -293,97 +322,50 @@ class Obj(object):
 
 				if prefix == 'v':
 					self.vertices.append(list(map(float, value.split(' '))))
-				elif prefix == 'vt':
-					self.vertices.append(list(map(float, value.split(' '))))
 
 				elif prefix == 'f':
 					self.vfaces.append([list(map(try_int, face.split('/'))) for face in value.split(' ')])
 	
 	
 		
-	def load(self, filename, translate=(0,0,0), scale=(1,1,1), texture=None):
+	def load(self, filename, translate=(0,0,0), scale=(1,1,1), texture = None):
 		model = Obj(filename)
-		light = V3(0,0,1)
+		light = V3(0,0,1)		
 		
 		for face in model.vfaces:
 			vcount = len(face)
-			
+
 			if vcount == 3:
-				f1 = face[0][0] -1
-				f2 = face[1][0] -1
-				f3 = face[2][0] -1
-				
-				a = self.transform(model.vertices[f1], translate, scale)
-				b = self.transform(model.vertices[f2], translate, scale)
-				c = self.transform(model.vertices[f3], translate, scale)
-				
-				normal = norm(cross(sub(b, a), sub(c,a)))
-				intensity = dot(normal, light)
-				
-				if not texture:
-					grey = round(255 * intensity)
-					
-					if grey < 0:
-						continue
-					self.triangle(A, B, C, color(grey, grey, grey))
-						
-				else:
-					t1 = face[0][1] -1
-					t2 = face[1][1] -1
-					t3 = face[2][1] -1
-					print(*model.tvertices[t1])
-					tA = V3(*model.tvertices[t1])
-					tB = V3(*model.tvertices[t2])
-					tC = V3(*model.tvertices[t3])
-					
-					self.triangle(a, b, c, texture=tecture, texture_coords=(tA, tB, tC))
-						
-			else:
-				f1 = face[0][0] -1
-				f2 = face[1][0] -1
-				f3 = face[2][0] -1
-				f4 = face[3][0] -1
-				
-				vertices = [
-					self.transform(model.vertices[f1], translate, scale),
-					self.transform(model.vertices[f2], translate, scale),
-					self.transform(model.vertices[f3], translate, scale),
-					self.transform(model.vertices[f4], translate, scale)
-				]
-			
-				normal = norm(cross(sub(vertices[0], vertices[1]), sub(vertices[1], vertices[2])))
+				f1 = face[0][0] - 1
+				f2 = face[1][0] - 1
+				f3 = face[2][0] - 1
+
+				a = V3(*model.vertices[f1])
+				b = V3(*model.vertices[f2])
+				c = V3(*model.vertices[f3])
+
+				normal = norm(cross(sub(b,a), sub(c,a)))
 				intensity = dot(normal, light)
 				grey = round(255 * intensity)
+
+				a = self.transform(a, translate, scale)
+				b = self.transform(b, translate, scale)
+				c = self.transform(c, translate, scale)
+
+				if intensity<0:
+					continue
 				
-				A, B, C, D = vertices
-			
-				if not texture:
-					grey = round(255 * intensity)
-					if grey < 0:
-						continue
-					self.triangle(A, B, C, color(grey, grey, grey))
-					self.triangle(A, C, D, color(grey, grey, grey))
-					
-				else:
-					t1 = face[0][1] -1
-					t2 = face[1][1] -1
-					t3 = face[2][1] -1
-					t4 = face[3][1] -1
-					tA = V3(*model.tvertices[t1])
-					tB = V3(*model.tvertices[t2])
-					tC = V3(*model.tvertices[t3])
-					tD = V3(*model.tvertices[t4])
-				
-					self.triangle(A, B, C, texture=texture, texture_coords=(tA, tB, tC))
-					self.triangle(A, C, D, texture=texture, texture_coords=(tA, tC, tD))
+				self.triangle(a, b, c, color(grey, grey, grey))
 
 an = 1280
 al = 1280
+
+
 				
 im = glCreateWindow(an, al)
 
 r = Obj("Poopybutthole.obj")
-glViewPort(0,0,800,600)
+r.ViewPort(0,0,800,600)
 r.load("Poopybutthole.obj")
 glFinish('out')
 				
