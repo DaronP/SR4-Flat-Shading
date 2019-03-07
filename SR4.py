@@ -97,26 +97,27 @@ class Bitmap(object):
 		#File Header 14
 		f.write(char('B'))
 		f.write(char('M'))
-		f.write(dword(14 + 40 + self.width * self.height * 3))
+		f.write(dword(14 + 40 + an * al * 3))
 		f.write(dword(0))
 		f.write(dword(14+40))
 
 		#image header 40
 		f.write(dword(40))
-		f.write(dword(self.width))
-		f.write(dword(self.height))
+		f.write(dword(an))
+		f.write(dword(al))
 		f.write(word(1))
 		f.write(word(24))
 		f.write(dword(0))
-		f.write(dword(self.width * self.height * 3))
+		f.write(dword(an * al* 3))
 		f.write(dword(0))
 		f.write(dword(0))
 		f.write(dword(0))
 		f.write(dword(0))
        
-		for x in range(self.height):
-				for y in range(self.width):
-						f.write(self.framebuffer[x][y])
+		for x in range(an):
+			for y in range(al):
+					f.write(self.framebuffer[x][y])
+					#print(self.framebuffer[x][y])
 
 		f.close()
 
@@ -199,40 +200,6 @@ class Bitmap(object):
 					x -=1
 				if x0 < x1:
 					x += 1
-
-
-
-def glCreateWindow(ancho, alto):
-        return Bitmap(ancho, alto)
-def glViewPort(x,y,largo,alto):
-	l = largo
-	a = alto
-	im.ViewPort(x,y,l,a)
-def glClear(r,g,b):
-        im.clearColor(r,g,b)
-def glVertex(x,y):
-        im.vertex(x,y)
-#def glColor(r,g,b,x,y):
-#        return vertex(x,y,ancho,alto,color(r*255,g*255,b*255))
-def glFinish(name):
-        im.Crear(name+".bmp")
-
-def glColor(x,y,color):
-	im.Color(x,y,color)
-	
-def glLine(x0,y0,x1,y1):
-	im.Linea(x0,y0,x1,y1)
-	
-def glPoint(x,y):
-	im.point(x,y)
-
-	
-def try_int(s, base=10, val=None):
-	try:
-		return int(s,base)
-	except ValueError:
-		return val
-		
 		
 class Obj(object):
 	def __init__(self, filename):
@@ -246,6 +213,7 @@ class Obj(object):
 		self.zbuffer = []
 		self.framebuffer = []
 		self.clear()
+		#self.celarz()
 		self.sx = 0
 		self.sy = 0
 		self.viewwidth = 0
@@ -265,7 +233,7 @@ class Obj(object):
 			]
 			for y in range(al)
 		]
-		
+	#def clearz(self):
 		self.zbuffer = [
 			[
 				float('inf')*-1
@@ -273,19 +241,47 @@ class Obj(object):
 			]
 			for y in range(al)
 		]
+		
+	def Crear(self, filename):
+		f = open(filename, 'wb')
+
+		#File Header 14
+		f.write(char('B'))
+		f.write(char('M'))
+		f.write(dword(14 + 40 + an * al * 3))
+		f.write(dword(0))
+		f.write(dword(14+40))
+
+		#image header 40
+		f.write(dword(40))
+		f.write(dword(an))
+		f.write(dword(al))
+		f.write(word(1))
+		f.write(word(24))
+		f.write(dword(0))
+		f.write(dword(an * al* 3))
+		f.write(dword(0))
+		f.write(dword(0))
+		f.write(dword(0))
+		f.write(dword(0))
+       
+		for x in range(an):
+			for y in range(al):
+					f.write(self.framebuffer[y][x])
+
+		f.close()
 
 	def FltoPixelsX(self, x0):
-		X = (((x0+1)/2)*self.viewwidth)+self.sx
-		return X    
-	def FltoPixelsY(self, y0):
-		Y = (((y0+1)/2)*self.viewheight)+self.sy
-		return Y
+		return int(round(((x0*(self.viewwidth/2))+self.sx)))
 		
-	def transform(self, vertex, translate=(0,0,0), scale=(1,1,1)):
+	def FltoPixelsY(self, y0):
+		return int(round((y0*(self.viewheight/3))+self.sy))
+		
+	def transform(self, vertex):
 		return V3(
-			round(self.FltoPixelsX((vertex[0] + translate[0]) * scale[0])),
-			round(self.FltoPixelsY((vertex[1] + translate[1]) * scale[1])),
-			round(self.FltoPixelsY((vertex[2] + translate[2]) * scale[2]))
+			self.FltoPixelsX(vertex[0]),
+			self.FltoPixelsY(vertex[1]),
+			self.FltoPixelsY(vertex[2])
 		)
 	
 	def point(self, x, y, color):
@@ -310,8 +306,7 @@ class Obj(object):
 				if z > self.zbuffer[x][y]:
 					self.point(x,y, color)
 					self.zbuffer[x][y] = z
-
-						
+					print(x,y)					
 			
 
 	def read(self):
@@ -348,14 +343,48 @@ class Obj(object):
 				intensity = dot(normal, light)
 				grey = round(255 * intensity)
 
-				a = self.transform(a, translate, scale)
-				b = self.transform(b, translate, scale)
-				c = self.transform(c, translate, scale)
+				a = self.transform(a)
+				b = self.transform(b)
+				c = self.transform(c)
 
 				if intensity<0:
 					continue
 				
 				self.triangle(a, b, c, color(grey, grey, grey))
+
+
+def glCreateWindow(ancho, alto):
+        return Bitmap(ancho, alto)
+def glViewPort(x,y,largo,alto):
+	l = largo
+	a = alto
+	im.ViewPort(x,y,l,a)
+def glClear(r,g,b):
+        im.clearColor(r,g,b)
+def glVertex(x,y):
+        im.vertex(x,y)
+#def glColor(r,g,b,x,y):
+#        return vertex(x,y,ancho,alto,color(r*255,g*255,b*255))
+def glFinish(name):
+        r.Crear(name+".bmp")
+
+def glColor(x,y,color):
+	im.Color(x,y,color)
+	
+def glLine(x0,y0,x1,y1):
+	im.Linea(x0,y0,x1,y1)
+	
+def glPoint(x,y):
+	im.point(x,y)
+
+	
+def try_int(s, base=10, val=None):
+	try:
+		return int(s,base)
+	except ValueError:
+		return val
+		
+
 
 an = 1280
 al = 1280
