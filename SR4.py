@@ -274,17 +274,17 @@ class Obj(object):
 
 		f.close()
 
-	def FltoPixelsX(self, x0):
+	def NormX(self, x0):
 		return int(round(((x0*(self.viewwidth/2))+self.sx)))
 		
-	def FltoPixelsY(self, y0):
+	def NormY(self, y0):
 		return int(round((y0*(self.viewheight/3))+self.sy))
 		
 	def transform(self, vertex):
 		return V3(
-			self.FltoPixelsX(vertex[0]),
-			self.FltoPixelsY(vertex[1]),
-			self.FltoPixelsY(vertex[2])
+			self.NormX(vertex[0]),
+			self.NormY(vertex[1]),
+			self.NormY(vertex[2])
 		)
 	
 	def point(self, x, y, color):
