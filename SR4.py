@@ -224,6 +224,9 @@ class Obj(object):
 		self.sy = y+(alto/2)
 		self.viewwidth = largo/2
 		self.viewheight = alto/2
+
+	def Color(self, x,y,color):
+		self.framebuffer[int(round(self.sy + y))][int(round(self.sx + x ))] = color
 		
 	def clear (self):
 		self.framebuffer = [
@@ -290,9 +293,6 @@ class Obj(object):
 	def triangle(self, A, B, C, color):
 		bbox_min, bbox_max = bbox(A, B, C)
 		
-		bby = (bbox_max.y+1)-bbox_min.y
-		bby = (bbox_max.y+1)-bbox_min.y
-		
 		for x in range(bbox_min.x, bbox_max.x + 1):
 			for y in range(bbox_min.y, bbox_max.y + 1):
 				w, v, u = barycentric(A, B, C, V2(x,y))
@@ -306,7 +306,6 @@ class Obj(object):
 				if z > self.zbuffer[x][y]:
 					self.point(x,y, color)
 					self.zbuffer[x][y] = z
-					print(x,y)					
 			
 
 	def read(self):
@@ -339,6 +338,7 @@ class Obj(object):
 				b = V3(*model.vertices[f2])
 				c = V3(*model.vertices[f3])
 
+
 				normal = norm(cross(sub(b,a), sub(c,a)))
 				intensity = dot(normal, light)
 				grey = round(255 * intensity)
@@ -346,6 +346,8 @@ class Obj(object):
 				a = self.transform(a)
 				b = self.transform(b)
 				c = self.transform(c)
+
+				print(a,b,c)
 
 				if intensity<0:
 					continue
