@@ -282,9 +282,9 @@ class Obj(object):
 		
 	def transform(self, vertex):
 		return V3(
-			self.NormX(vertex[0]),
-			self.NormY(vertex[1]),
-			self.NormY(vertex[2])
+			self.NormX(vertex[0]*0.25),
+			self.NormY(vertex[1]*0.25),
+			self.NormY(vertex[2]*0.25)
 		)
 	
 	def point(self, x, y, color):
